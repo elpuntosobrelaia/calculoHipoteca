@@ -28,12 +28,15 @@
       margin-top: 15px;
       font-weight: bold;
     }
-    input {
+    input[type="number"] {
       width: 100%;
       padding: 8px;
       margin-top: 5px;
       border: 1px solid #ccc;
       border-radius: 4px;
+    }
+    input[type="range"] {
+      width: 100%;
     }
     button {
       display: block;
@@ -67,6 +70,15 @@
     canvas {
       margin-top: 20px;
     }
+    .ayuda {
+      font-size: 0.85em;
+      color: #888;
+    }
+    .tooltip {
+      display: inline-block;
+      cursor: help;
+      color: #007bff;
+    }
   </style>
 </head>
 <body>
@@ -76,12 +88,15 @@
     <div id="formularioInicial">
       <label>Ingresos mensuales netos:
         <input type="number" id="ingresos" required>
+        <span class="ayuda">Tus ingresos después de impuestos.</span>
       </label>
       <label>Otras deudas mensuales (ej. coche, móvil):
         <input type="number" id="otrasDeudas">
+        <span class="ayuda">Cualquier otro pago mensual que debas realizar.</span>
       </label>
       <label>Ahorros disponibles:
         <input type="number" id="ahorros" required>
+        <span class="ayuda">Necesitarás al menos un 30% del valor total de la vivienda (20% de entrada y 10% de gastos).</span>
       </label>
       <button onclick="calcularMaximoVivienda()">Calcular valor máximo de la vivienda</button>
     </div>
@@ -91,16 +106,20 @@
       <p class="explicacionFormula" id="explicacionFormula"></p>
       <p class="info">Puedes ajustar el valor de la vivienda (menor al máximo calculado), y establecer tipo de interés y plazo.</p>
       <label>Valor de la vivienda (€):
-        <input type="number" id="valorViviendaEditable" oninput="validarValorVivienda()">
+        <input type="number" id="valorViviendaEditable" oninput="validarValorVivienda();calcularLetraMensual()">
       </label>
       <label>Tipo de interés anual (%)
-        <input type="number" step="0.01" id="interes">
+        <input type="range" id="interesSlider" min="0.1" max="10" step="0.01" value="2" oninput="document.getElementById('interes').value = this.value;calcularLetraMensual()">
+        <input type="number" step="0.01" id="interes" value="2" oninput="document.getElementById('interesSlider').value = this.value;calcularLetraMensual()">
+        <span class="ayuda">El Euribor actual ronda el 2%.</span>
       </label>
       <label>Años de amortización:
-        <input type="number" id="anios">
+        <input type="range" id="aniosSlider" min="5" max="40" value="30" oninput="document.getElementById('anios').value = this.value;calcularLetraMensual()">
+        <input type="number" id="anios" value="30" oninput="document.getElementById('aniosSlider').value = this.value;calcularLetraMensual()">
+        <span class="ayuda">La mayoría de hipotecas se firman entre 20 y 30 años.</span>
       </label>
-      <button onclick="calcularLetraMensual()">Calcular cuota y coste total</button>
       <div id="resultadoDetalles" class="resultado"></div>
+      <div id="diferenciaCoste" class="resultado"></div>
       <canvas id="graficoHipoteca" width="600" height="300"></canvas>
     </div>
   </div>
@@ -115,7 +134,7 @@
 
       const maxCuotaMensual = ingresos * 0.4 - otrasDeudas;
       const meses = 12 * 30;
-      const interes = 0.03 / 12;
+      const interes = 0.02 / 12; // Euribor aproximado 2%
       const maxHipoteca = maxCuotaMensual * (1 - Math.pow(1 + interes, -meses)) / interes;
       const valorTotalNecesario = ahorros / 0.3;
       maxValorVivienda = Math.min(maxHipoteca / 0.8, valorTotalNecesario);
@@ -127,10 +146,12 @@
 
       document.getElementById('explicacionFormula').innerText = `
         Con ingresos mensuales de ${ingresos}€ y deudas de ${otrasDeudas}€, tu cuota máxima mensual sería de ${maxCuotaMensual.toFixed(2)}€.
-        Suponiendo un interés del 3% anual durante 30 años, el préstamo máximo sería de ${maxHipoteca.toFixed(2)}€.
+        Suponiendo un interés del 2% anual durante 30 años, el préstamo máximo sería de ${maxHipoteca.toFixed(2)}€.
         Dado que dispones de ${ahorros}€ en ahorros (mínimo 30% del valor total),
         el valor máximo de la vivienda que puedes permitirte es aproximadamente ${maxValorVivienda.toFixed(2)}€.
       `;
+
+      calcularLetraMensual();
     }
 
     function validarValorVivienda() {
@@ -159,9 +180,9 @@
       const totalPagado = cuotaMensual * numeroPagos;
 
       document.getElementById('resultadoDetalles').innerHTML = `
-        <p>Valor del préstamo: <strong>€${prestamo.toFixed(2)}</strong></p>
-        <p>Cuota mensual estimada: <strong>€${cuotaMensual.toFixed(2)}</strong></p>
-        <p>Coste total del préstamo con intereses: <strong>€${totalPagado.toFixed(2)}</strong></p>
+        <p>Valor del préstamo: <strong>${prestamo.toFixed(2)}€</strong></p>
+        <p>Cuota mensual estimada: <strong>${cuotaMensual.toFixed(2)}€</strong></p>
+        <p>Coste total del préstamo con intereses: <strong>${totalPagado.toFixed(2)}€</strong></p>
       `;
 
       let saldo = prestamo;
@@ -181,6 +202,10 @@
         acumuladoConInteres.push(totalConInteres);
         acumuladoSinInteres.push((prestamo / numeroPagos) * i * 12);
       }
+
+      document.getElementById('diferenciaCoste').innerHTML = `
+        <p>Diferencia total por intereses pagados: <strong>€${(totalConInteres - prestamo).toFixed(2)}</strong></p>
+      `;
 
       const ctx = document.getElementById('graficoHipoteca').getContext('2d');
       if (window.miGrafico) window.miGrafico.destroy();
