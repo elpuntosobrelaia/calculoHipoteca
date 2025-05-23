@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Hipoteca</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      background: #fff;
+      padding: 30px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .section {
+      margin-top: 30px;
+    }
+    .info, .explicacionFormula {
+      font-style: italic;
+      font-size: 0.9em;
+      color: #555;
+      margin-bottom: 10px;
+    }
+    .resultado {
+      font-size: 1.2em;
+      margin-top: 15px;
+      text-align: center;
+      color: #333;
+    }
+    canvas {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculadora de Valor Máximo de Vivienda</h1>
+    <p class="info">Introduce tus datos para saber el valor máximo de la vivienda que puedes permitirte según tus ingresos, deudas y ahorros.</p>
+    <div id="formularioInicial">
+      <label>Ingresos mensuales netos:
+        <input type="number" id="ingresos" required>
+      </label>
+      <label>Otras deudas mensuales (ej. coche, móvil):
+        <input type="number" id="otrasDeudas">
+      </label>
+      <label>Ahorros disponibles:
+        <input type="number" id="ahorros" required>
+      </label>
+      <button onclick="calcularMaximoVivienda()">Calcular valor máximo de la vivienda</button>
+    </div>
+
+    <div id="formularioDetalles" style="display:none;">
+      <h2>Detalles del Préstamo Hipotecario</h2>
+      <p class="explicacionFormula" id="explicacionFormula"></p>
+      <p class="info">Puedes ajustar el valor de la vivienda (menor al máximo calculado), y establecer tipo de interés y plazo.</p>
+      <label>Valor de la vivienda (€):
+        <input type="number" id="valorViviendaEditable" oninput="validarValorVivienda()">
+      </label>
+      <label>Tipo de interés anual (%)
+        <input type="number" step="0.01" id="interes">
+      </label>
+      <label>Años de amortización:
+        <input type="number" id="anios">
+      </label>
+      <button onclick="calcularLetraMensual()">Calcular cuota y coste total</button>
+      <div id="resultadoDetalles" class="resultado"></div>
+      <canvas id="graficoHipoteca" width="600" height="300"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let maxValorVivienda = 0;
+
+    function calcularMaximoVivienda() {
+      const ingresos = +document.getElementById('ingresos').value;
+      const otrasDeudas = +document.getElementById('otrasDeudas').value;
+      const ahorros = +document.getElementById('ahorros').value;
+
+      const maxCuotaMensual = ingresos * 0.4 - otrasDeudas;
+      const meses = 12 * 30;
+      const interes = 0.03 / 12;
+      const maxHipoteca = maxCuotaMensual * (1 - Math.pow(1 + interes, -meses)) / interes;
+      const valorTotalNecesario = ahorros / 0.3;
+      maxValorVivienda = Math.min(maxHipoteca / 0.8, valorTotalNecesario);
+
+      document.getElementById('formularioInicial').style.display = 'none';
+      document.getElementById('formularioDetalles').style.display = 'block';
+      document.getElementById('valorViviendaEditable').value = Math.floor(maxValorVivienda);
+      document.getElementById('valorViviendaEditable').max = Math.floor(maxValorVivienda);
+
+      document.getElementById('explicacionFormula').innerText = `
+        Con ingresos mensuales de €${ingresos} y deudas de €${otrasDeudas}, tu cuota máxima mensual sería de €${maxCuotaMensual.toFixed(2)}.
+        Suponiendo un interés del 3% anual durante 30 años, el préstamo máximo sería de €${maxHipoteca.toFixed(2)}.
+        Dado que dispones de €${ahorros} en ahorros (mínimo 30% del valor total),
+        el valor máximo de la vivienda que puedes permitirte es aproximadamente €${maxValorVivienda.toFixed(2)}.
+      `;
+    }
+
+    function validarValorVivienda() {
+      const valor = +document.getElementById('valorViviendaEditable').value;
+      if (valor > maxValorVivienda) {
+        alert("El valor de la vivienda no puede superar el máximo calculado: " + maxValorVivienda.toFixed(2));
+        document.getElementById('valorViviendaEditable').value = maxValorVivienda;
+      }
+    }
+
+    function calcularLetraMensual() {
+      const valorVivienda = +document.getElementById('valorViviendaEditable').value;
+      const interesAnual = +document.getElementById('interes').value / 100;
+      const anios = +document.getElementById('anios').value;
+
+      if (valorVivienda > maxValorVivienda) {
+        alert("No puedes superar el valor máximo permitido de vivienda: " + maxValorVivienda.toFixed(2));
+        return;
+      }
+
+      const prestamo = valorVivienda * 0.8;
+      const interesMensual = interesAnual / 12;
+      const numeroPagos = anios * 12;
+
+      const cuotaMensual = prestamo * interesMensual / (1 - Math.pow(1 + interesMensual, -numeroPagos));
+      const totalPagado = cuotaMensual * numeroPagos;
+
+      document.getElementById('resultadoDetalles').innerHTML = `
+        <p>Valor del préstamo: <strong>€${prestamo.toFixed(2)}</strong></p>
+        <p>Cuota mensual estimada: <strong>€${cuotaMensual.toFixed(2)}</strong></p>
+        <p>Coste total del préstamo con intereses: <strong>€${totalPagado.toFixed(2)}</strong></p>
+      `;
+
+      let saldo = prestamo;
+      const acumuladoConInteres = [];
+      const acumuladoSinInteres = [];
+      let totalConInteres = 0;
+
+      for (let i = 1; i <= anios; i++) {
+        let totalAnual = 0;
+        for (let j = 0; j < 12; j++) {
+          const interesMes = saldo * interesMensual;
+          const amortizacion = cuotaMensual - interesMes;
+          saldo -= amortizacion;
+          totalAnual += cuotaMensual;
+        }
+        totalConInteres += totalAnual;
+        acumuladoConInteres.push(totalConInteres);
+        acumuladoSinInteres.push((prestamo / numeroPagos) * i * 12);
+      }
+
+      const ctx = document.getElementById('graficoHipoteca').getContext('2d');
+      if (window.miGrafico) window.miGrafico.destroy();
+      window.miGrafico = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({length: anios}, (_, i) => `Año ${i + 1}`),
+          datasets: [
+            {
+              label: 'Pago acumulado sin intereses',
+              data: acumuladoSinInteres,
+              borderColor: 'green',
+              fill: false
+            },
+            {
+              label: 'Pago acumulado con intereses',
+              data: acumuladoConInteres,
+              borderColor: 'red',
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
