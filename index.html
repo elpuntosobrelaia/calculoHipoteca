@@ -126,10 +126,10 @@
       document.getElementById('valorViviendaEditable').max = Math.floor(maxValorVivienda);
 
       document.getElementById('explicacionFormula').innerText = `
-        Con ingresos mensuales de €${ingresos} y deudas de €${otrasDeudas}, tu cuota máxima mensual sería de €${maxCuotaMensual.toFixed(2)}.
-        Suponiendo un interés del 3% anual durante 30 años, el préstamo máximo sería de €${maxHipoteca.toFixed(2)}.
-        Dado que dispones de €${ahorros} en ahorros (mínimo 30% del valor total),
-        el valor máximo de la vivienda que puedes permitirte es aproximadamente €${maxValorVivienda.toFixed(2)}.
+        Con ingresos mensuales de ${ingresos}€ y deudas de ${otrasDeudas}€, tu cuota máxima mensual sería de ${maxCuotaMensual.toFixed(2)}€.
+        Suponiendo un interés del 3% anual durante 30 años, el préstamo máximo sería de ${maxHipoteca.toFixed(2)}€.
+        Dado que dispones de ${ahorros}€ en ahorros (mínimo 30% del valor total),
+        el valor máximo de la vivienda que puedes permitirte es aproximadamente ${maxValorVivienda.toFixed(2)}€.
       `;
     }
 
